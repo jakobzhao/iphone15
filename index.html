@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Top 10 U.S. Cities Map</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/maplibre-gl@5.3.0/dist/maplibre-gl.css"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --panel-bg: rgba(248, 242, 231, 0.92);
+        --panel-border: rgba(47, 57, 65, 0.14);
+        --panel-shadow: 0 24px 60px rgba(17, 24, 39, 0.22);
+        --text-main: #17202a;
+        --text-muted: #51606d;
+        --accent: #c24d2c;
+        --accent-soft: rgba(194, 77, 44, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: Georgia, "Times New Roman", serif;
+        background: #d9e2e8;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      #map {
+        position: fixed;
+        inset: 0;
+      }
+
+      .panel {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1;
+        width: min(360px, calc(100vw - 40px));
+        padding: 18px 18px 16px;
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        background: var(--panel-bg);
+        backdrop-filter: blur(14px);
+        box-shadow: var(--panel-shadow);
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--accent);
+        font: 700 0.78rem/1.2 "Trebuchet MS", Helvetica, sans-serif;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text-main);
+        font-size: clamp(1.8rem, 2.4vw, 2.5rem);
+        line-height: 0.95;
+      }
+
+      .intro {
+        margin: 12px 0 16px;
+        color: var(--text-muted);
+        font-size: 0.98rem;
+        line-height: 1.45;
+      }
+
+      .city-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .city-list li {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--text-main);
+        font-size: 0.92rem;
+      }
+
+      .city-list span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        margin-top: 2px;
+      }
+
+      .marker {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff7f0;
+        border-radius: 999px;
+        background: var(--accent);
+        box-shadow: 0 0 0 6px var(--accent-soft);
+      }
+
+      .maplibregl-popup-content {
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+
+      .popup-title {
+        margin: 0 0 4px;
+        color: var(--text-main);
+        font-size: 1rem;
+      }
+
+      .popup-copy {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 720px) {
+        .panel {
+          top: auto;
+          bottom: 16px;
+          left: 16px;
+          right: 16px;
+          width: auto;
+          padding: 16px;
+        }
+
+        .city-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 520px) {
+        .city-list {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" aria-label="Map of the top 10 major cities in the United States"></div>
+
+    <aside class="panel">
+      <p class="eyebrow">MapLibre Demo</p>
+      <h1>Top 10 U.S. Cities</h1>
+      <p class="intro">
+        A full-screen map of the 10 most populous incorporated cities in the United States.
+        Select a marker to view a short summary.
+      </p>
+      <ul class="city-list" id="city-list"></ul>
+    </aside>
+
+    <script src="https://unpkg.com/maplibre-gl@5.3.0/dist/maplibre-gl.js"></script>
+    <script>
+      const cities = [
+        {
+          name: "New York City",
+          state: "New York",
+          coordinates: [-74.006, 40.7128],
+          description:
+            "A global center for finance, media, fashion, and culture, known for Times Square, Central Park, and the Statue of Liberty."
+        },
+        {
+          name: "Los Angeles",
+          state: "California",
+          coordinates: [-118.2437, 34.0522],
+          description:
+            "Famous for Hollywood, the entertainment industry, and its major influence across music, trade, and technology."
+        },
+        {
+          name: "Chicago",
+          state: "Illinois",
+          coordinates: [-87.6298, 41.8781],
+          description:
+            "Known for landmark architecture, museums, sports, and its central role in Midwest business and transportation."
+        },
+        {
+          name: "Houston",
+          state: "Texas",
+          coordinates: [-95.3698, 29.7604],
+          description:
+            "A major hub for energy, medicine, and space exploration, home to the Texas Medical Center and NASA's Johnson Space Center."
+        },
+        {
+          name: "Phoenix",
+          state: "Arizona",
+          coordinates: [-112.074, 33.4484],
+          description:
+            "Known for its desert climate, fast growth, and easy access to outdoor recreation."
+        },
+        {
+          name: "Philadelphia",
+          state: "Pennsylvania",
+          coordinates: [-75.1652, 39.9526],
+          description:
+            "A historic city associated with Independence Hall, the Liberty Bell, major universities, and healthcare institutions."
+        },
+        {
+          name: "San Antonio",
+          state: "Texas",
+          coordinates: [-98.4936, 29.4241],
+          description:
+            "Known for the Alamo, the River Walk, and its strong Spanish and Mexican heritage."
+        },
+        {
+          name: "San Diego",
+          state: "California",
+          coordinates: [-117.1611, 32.7157],
+          description:
+            "Known for mild weather, beaches, military installations, and a strong biotechnology sector."
+        },
+        {
+          name: "Dallas",
+          state: "Texas",
+          coordinates: [-96.797, 32.7767],
+          description:
+            "A major southern business center with strengths in finance, telecommunications, transportation, and real estate."
+        },
+        {
+          name: "Jacksonville",
+          state: "Florida",
+          coordinates: [-81.6557, 30.3322],
+          description:
+            "Known for its port activity, riverfront, beaches, and growing financial services sector."
+        }
+      ];
+
+      const cityList = document.getElementById("city-list");
+      cityList.innerHTML = cities
+        .map(
+          (city, index) => `
+            <li>
+              ${index + 1}. ${city.name}
+              <span>${city.state}</span>
+            </li>
+          `
+        )
+        .join("");
+
+      const map = new maplibregl.Map({
+        container: "map",
+        style: "https://demotiles.maplibre.org/style.json",
+        center: [-98.5795, 39.8283],
+        zoom: 3.4,
+        attributionControl: true
+      });
+
+      map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+      const bounds = new maplibregl.LngLatBounds();
+
+      cities.forEach((city) => {
+        bounds.extend(city.coordinates);
+
+        const markerNode = document.createElement("div");
+        markerNode.className = "marker";
+
+        const popup = new maplibregl.Popup({ offset: 16 }).setHTML(`
+          <h2 class="popup-title">${city.name}, ${city.state}</h2>
+          <p class="popup-copy">${city.description}</p>
+        `);
+
+        new maplibregl.Marker({ element: markerNode })
+          .setLngLat(city.coordinates)
+          .setPopup(popup)
+          .addTo(map);
+      });
+
+      map.on("load", () => {
+        map.fitBounds(bounds, {
+          padding: {
+            top: 80,
+            right: 80,
+            bottom: 80,
+            left: window.innerWidth > 720 ? 420 : 48
+          },
+          maxZoom: 4.8,
+          duration: 0
+        });
+      });
+    </script>
+  </body>
+</html>
